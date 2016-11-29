@@ -196,16 +196,11 @@ public class homework {
 				String operator = ( clauseToNegate.charAt(endOfFirstParenthesis) == '|' ) ? "&" : "|";
 				String leftOperand = clauseToNegate.substring( 0, endOfFirstParenthesis );
 				String rightOperand = clauseToNegate.substring( endOfFirstParenthesis + 1 );
-				modified.replace( notIndex, endNegate, "((~" + leftOperand + ")" + operator + "(~" + rightOperand + "))" );
+				modified.replace( notIndex, endNegate, "(~" + leftOperand + ")" + operator + "(~" + rightOperand + ")" );
 			}
-			
-			String dummy = modified.toString();
-			int asdfasdfasdf= 0;
-			
 		}
+		
 		// 3. Distribute | over &
-		String dummy = modified.toString();
-		int asdfasdf = 1;
 		
 		
 		return convertedClauses;
@@ -231,5 +226,20 @@ public class homework {
 		}
 		
 		return endParenIndex;
+	}
+	
+	private static List<String> distributeOrOverAnd(String input)
+	{
+		// return 
+		if( input.charAt(0) != '(' || (input.charAt(0) == '(' && input.charAt(1) != '~'))
+		{
+			List<String> result = new ArrayList<String>();
+			result.add(input);
+			return result;
+		}
+		
+		List<String> result = new ArrayList<String>();
+		
+		return result;
 	}
 }
