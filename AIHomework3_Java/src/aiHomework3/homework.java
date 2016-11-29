@@ -185,7 +185,7 @@ public class homework {
 			if( clauseToNegate.charAt( 0 ) == '~' )
 			{
 				// Remove the negation
-				modified.replace( startNegate, endNegate, clauseToNegate.substring(1) );
+				modified.replace( notIndex - 1, endNegate + 1, clauseToNegate.substring(1) );
 			}
 			else
 			{
@@ -193,18 +193,19 @@ public class homework {
 				int endOfFirstParenthesis = getIndexOfClosingParenthesis( clauseToNegate, 0 );
 				
 				// If we're distributing a ~ over &, we need to convert the & to |
-				String operator = ( clauseToNegate.charAt(endNegate) == '|' ) ? "&" : "|";
-				String leftOperand = clauseToNegate.substring( startNegate, endOfFirstParenthesis );
+				String operator = ( clauseToNegate.charAt(endOfFirstParenthesis) == '|' ) ? "&" : "|";
+				String leftOperand = clauseToNegate.substring( 0, endOfFirstParenthesis );
 				String rightOperand = clauseToNegate.substring( endOfFirstParenthesis + 1 );
-				modified.append( "((~" ).append( leftOperand ).append( ")" ).append( operator ).append( "(~" ).append( rightOperand ).append( "))" );
+				modified.replace( notIndex, endNegate, "((~" + leftOperand + ")" + operator + "(~" + rightOperand + "))" );
 			}
 			
-			notIndex = -1;
 			String dummy = modified.toString();
-			int asdfasd = 0;
+			int asdfasdfasdf= 0;
 			
 		}
 		// 3. Distribute | over &
+		String dummy = modified.toString();
+		int asdfasdf = 1;
 		
 		
 		return convertedClauses;
