@@ -1,6 +1,7 @@
 
 *.class
 /build
+output.txt
 
 .metadata
 bin/

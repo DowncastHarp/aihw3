@@ -2,6 +2,8 @@ package aiHomework3;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 class Literal {
 	public Boolean negated;
@@ -24,13 +26,14 @@ class Clause {
 }
 
 public class homework {
+
+	private static final String inFile = "input.txt";
+	private static final String outFile = "output.txt";
 	
 	public static void main( String[] args ) throws Exception
 	{
 		BufferedReader br = null;
 		BufferedWriter bw = null;
-		File inFile = new File( "input.txt" );
-		File outFile = new File( "output.txt" );
 
 		int numQueries = 0;
 		List<String> queries = new ArrayList<String>();
@@ -75,9 +78,11 @@ public class homework {
 			}
 		}
 
+		List<Clause> converted = new ArrayList<Clause>();
 		// Parse the raw sentences. Convert to Conjunctive Normal Form. Add final sentence to the KB
 		for( String rawSentence : rawSentences )
 		{
+			converted.addAll( ConvertToCNF( rawSentence ) );
 			knowledgeBase.addAll( ConvertToCNF( rawSentence ) );
 		}
 
@@ -95,8 +100,16 @@ public class homework {
 			
 			for( Clause kbClause : knowledgeBase )
 			{
-//				bw.write( knowledgeBase.get( i ) );
-//				bw.newLine();
+				for( Literal lit : kbClause.literals )
+				{
+					bw.write( "Negate: " + lit.negated + ", Name: " + lit.name + ", Args: " );
+					for( String arg : lit.arguments )
+					{
+						bw.write( arg + ",");
+					}
+					bw.newLine();
+				}
+				bw.newLine();
 			}
 			
 			bw.newLine();
@@ -117,6 +130,14 @@ public class homework {
 				bw.close();
 			}
 		}
+	}
+	
+	private static Boolean resolveQuery( Literal query, Set<Clause> kb )
+	{
+		Clause clause = new Clause();
+		
+		query.negated = !query.negated;
+		return true;
 	}
 	
 	private static List<Clause> ConvertToCNF( String rawSentence )
@@ -201,45 +222,133 @@ public class homework {
 		}
 		
 		// 3. Distribute | over &
+		List<String> rawClauses = distributeOrOverAnd( modified.toString() );
 		
+		// Convert the string clauses into Literal and Clause objects
+		for ( String rawClause : rawClauses )
+		{
+			convertedClauses.add( convertStringToClause( rawClause ) );
+		}
 		
 		return convertedClauses;
 	}
 	
 	private static int getIndexOfClosingParenthesis( String input, int startParenIndex )
 	{
-		int endParenIndex = startParenIndex;
+		int currentIndex = startParenIndex;
 		int openParenCount = 0;
 		int closeParenCount = 0;
 		
 		while( openParenCount == 0 || openParenCount != closeParenCount )
 		{
-			if(input.charAt( endParenIndex ) == '(' )
+			if(input.charAt( currentIndex ) == '(' )
 			{
 				++openParenCount;
 			}
-			else if (input.charAt( endParenIndex ) == ')' )
+			else if (input.charAt( currentIndex ) == ')' )
 			{
 				++closeParenCount;
 			}
-			++endParenIndex;
+			++currentIndex;
 		}
 		
-		return endParenIndex;
+		return currentIndex;
 	}
 	
 	private static List<String> distributeOrOverAnd(String input)
 	{
-		// return 
-		if( input.charAt(0) != '(' || (input.charAt(0) == '(' && input.charAt(1) != '~'))
+		// return if there is only a single clause in the input
+		// the guarantees about parentheses allow us to determine this easily
+		List<String> result = new ArrayList<String>();
+		if( input.charAt(0) != '(' || (input.charAt(0) == '(' && input.charAt(1) == '~'))
 		{
-			List<String> result = new ArrayList<String>();
-			result.add(input);
+			result.add(input.toString());
 			return result;
 		}
 		
-		List<String> result = new ArrayList<String>();
+		int endFirstOperand = getIndexOfClosingParenthesis( input.toString(), 1);
+		
+		String firstOperand = input.substring( 1, endFirstOperand );
+		String secondOperand = input.substring( endFirstOperand + 1 );
+		// Continue breaking apart the clauses within the operands until there's only one left
+		List<String> firstOperandClauses = distributeOrOverAnd( firstOperand );
+		List<String> secondOperandClauses = distributeOrOverAnd( secondOperand );
+		
+		char operator = input.charAt( endFirstOperand );
+		// If the first operand was |'d with the second, distribute it to the second operand
+		if( operator == '|' )
+		{
+			for( String first : firstOperandClauses )
+			{
+				for ( String second : secondOperandClauses )
+				{
+					StringBuilder distributed = new StringBuilder( "(" );
+					distributed.append( first ).append( "|" ).append( second ).append( ")" );
+					result.add( distributed.toString() );
+				}
+			}
+		}
+		else
+		{
+			result.addAll( firstOperandClauses );
+			result.addAll( secondOperandClauses );
+		}
 		
 		return result;
+	}
+	
+	private static Clause convertStringToClause( String input )
+	{
+		//Literal:
+		//	-Can start with or without negation
+		//	-First letter is capitalized
+		//	-Followed by and open paren and any number of arguments ( up to 100 )
+		//	-Arguments:
+		//		-Constants start with an uppercase letter
+		//		-Variables are all lowercase
+		
+		Pattern literalPattern = Pattern.compile( "~*[A-Z]\\w*\\([A-Za-z,]+\\)" );
+		Matcher literalMatcher = literalPattern.matcher( input );
+		
+		List<String> rawLiterals =  new ArrayList<String>();
+		while( literalMatcher.find() )
+		{
+			rawLiterals.add( literalMatcher.group() );
+		}
+		
+		List<Literal> clauseLiterals = new ArrayList<Literal>();
+		for( String rawLiteral : rawLiterals )
+		{
+			clauseLiterals.add( convertStringToLiteral( rawLiteral ) );
+		}
+		Clause clause = new Clause();
+		clause.literals.addAll( clauseLiterals );
+		
+		return clause;
+	}
+	
+	private static Literal convertStringToLiteral( String input )
+	{
+		Literal literal = new Literal();
+		if( input.charAt(0) == '~' )
+		{
+			literal.negated = true;
+			input = input.substring( 1 );
+		}
+		
+		int parenIndex = 0;
+		while (input.charAt(parenIndex) != '(' )
+		{
+			++parenIndex;
+		}
+
+		// remove the close paren, and split the literal on the open paren
+		input = input.substring( 0, input.length() - 1 );
+		String[] literalSplit = input.split( "\\(", 2 );
+		
+		literal.name = literalSplit[0];
+		literal.arguments.addAll( Arrays.asList( literalSplit[1].split( "," ) ) );
+		
+		return literal;
 	}
 }
