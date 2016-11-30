@@ -29,6 +29,7 @@ public class homework {
 
 	private static final String inFile = "input.txt";
 	private static final String outFile = "output.txt";
+	private static int timeout = 10000;
 	
 	public static void main( String[] args ) throws Exception
 	{
@@ -134,9 +135,17 @@ public class homework {
 	
 	private static Boolean resolveQuery( Literal query, Set<Clause> kb )
 	{
+		// copy the kb to make modifications to it freely.
+		Set<Clause> kbClone = new HashSet<Clause>(kb);
 		Clause clause = new Clause();
 		
 		query.negated = !query.negated;
+		clause.literals.add( query );
+		
+		// add the new clause to the kbClone
+		kbClone.add( clause );
+		
+		
 		return true;
 	}
 	
